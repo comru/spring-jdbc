@@ -16,8 +16,8 @@ public interface OwnerService {
 
     String TABLE_NAME = "owners";
     String ID = "id";
-    String FIRST_NAME = "first_Name";
-    String LAST_NAME = "last_Name";
+    String FIRST_NAME = "first_name";
+    String LAST_NAME = "last_name";
     String ADDRESS = "address";
     String CITY = "city";
     String TELEPHONE = "telephone";

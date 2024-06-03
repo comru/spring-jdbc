@@ -16,7 +16,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.JdbcUtils;
 import org.springframework.lang.NonNull;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 import static org.springframework.data.relational.core.sql.Conditions.*;
 
-@Repository
+@Service
 public class RelationalCoreOwnerService implements OwnerService {
 
     private final JdbcClient jdbcClient;

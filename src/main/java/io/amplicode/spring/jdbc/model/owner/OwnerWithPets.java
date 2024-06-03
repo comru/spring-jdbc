@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.relational.core.mapping.MappedCollection;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class OwnerWithPets extends OwnerBase {
 
+    @MappedCollection(keyColumn = "owner_id", idColumn = "id")
     private List<PetBase> pets = new ArrayList<>();
 
     public static OwnerWithPets create(OwnerBase ownerBase) {
