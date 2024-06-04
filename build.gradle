@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.3.0'
 	id 'io.spring.dependency-management' version '1.1.5'
+	id "org.jooq.jooq-codegen-gradle" version "3.19.9"
 }
 
 group = 'io.amplicode'
@@ -27,6 +28,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
+	implementation 'org.springframework.boot:spring-boot-starter-jooq'
+	jooqCodegen "org.postgresql:postgresql"
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
@@ -38,6 +41,29 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+jooq {
+	configuration {
+		jdbc {
+			driver = 'org.postgresql.Driver'
+			url = 'jdbc:postgresql://localhost/spring-jdbc'
+			user = 'root'
+			password = 'root'
+		}
+		generator {
+			name = 'org.jooq.codegen.JavaGenerator'
+			database {
+				name = 'org.jooq.meta.postgres.PostgresDatabase'
+				inputSchema = 'public'
+				excludes = 'public.flyway_schema_history'
+				tableValuedFunctions = false
+			}
+			target {
+				packageName = 'io.amplicode.spring.jdbc.service.owner.impl.jooq.generate'
+				directory = 'src/main/java'
+			}
+		}
+	}
+}
 
 //compileJava {
 //	options.compilerArgs += ['--enable-preview']
