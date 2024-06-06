@@ -10,6 +10,7 @@ import io.amplicode.spring.jdbc.service.pet.PetService;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
@@ -64,7 +65,7 @@ public class JdbcClientOwnerService implements OwnerService {
         }
 
         return jdbcClient.sql(sql)
-                .query(OwnerService::mapOwnerBase)
+                .query(BeanPropertyRowMapper.newInstance(OwnerBase.class))
                 .list();
     }
 
@@ -122,7 +123,7 @@ public class JdbcClientOwnerService implements OwnerService {
     public Optional<OwnerBase> findById(Integer id) {
         return jdbcClient.sql("select * from owners where id = :id")
                 .param("id", id)
-                .query(OwnerService::mapOwnerBase)
+                .query(BeanPropertyRowMapper.newInstance(OwnerBase.class))
                 .optional();
     }
 
@@ -130,7 +131,7 @@ public class JdbcClientOwnerService implements OwnerService {
     public List<OwnerMinimal> findAllById(Collection<Integer> ids) {
         return jdbcClient.sql("select id, first_name, last_name from owners where id in (:ids)")
                 .param("ids", ids)
-                .query(OwnerService::mapOwnerMinimal)
+                .query(BeanPropertyRowMapper.newInstance(OwnerMinimal.class))
                 .list();
     }
 
@@ -139,14 +140,6 @@ public class JdbcClientOwnerService implements OwnerService {
     @Override
     public OwnerBase save(OwnerBase owner) {
         BeanPropertySqlParameterSource parameterSource = new BeanPropertySqlParameterSource(owner);
-//        MapSqlParameterSource parameterSource = new MapSqlParameterSource(Map.of(
-//                FIRST_NAME, owner.firstName(),
-//                LAST_NAME, owner.lastName(),
-//                ADDRESS, owner.address(),
-//                CITY, owner.city(),
-//                TELEPHONE, owner.telephone()
-//        ));
-
         boolean isNew = owner.getId() == null;
         if (isNew) {
             Number newKey = this.insertOwner.executeAndReturnKey(parameterSource);

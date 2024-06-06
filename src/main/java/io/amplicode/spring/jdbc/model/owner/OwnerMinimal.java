@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.FieldNameConstants;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.domain.Persistable;
 
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Persistable;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @EqualsAndHashCode
+@FieldNameConstants
 public class OwnerMinimal implements Persistable<Integer>  {
 
     @Id
@@ -23,4 +25,6 @@ public class OwnerMinimal implements Persistable<Integer>  {
     public boolean isNew() {
         return id == null;
     }
+
+    public static class Fields {}
 }

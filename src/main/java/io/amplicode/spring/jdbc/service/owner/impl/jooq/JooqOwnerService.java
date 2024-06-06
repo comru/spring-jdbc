@@ -41,31 +41,15 @@ public class JooqOwnerService implements OwnerService {
     @Override
     public List<OwnerBase> findAll(OwnerFilter filter, Pageable pageable) {
         var select = dsl.selectFrom(OWNERS)
-                .where(convertToConditions(filter))
-                .orderBy(convertToOrders(pageable.getSort()));
-
-        if (!pageable.isUnpaged()) {
-            select.limit(pageable.getPageSize())
-                    .offset(pageable.getOffset());
+                .where(createConditions(filter))
+                .orderBy(createOrders(pageable.getSort()));
+        if (pageable.isPaged()) {
+            select.limit(pageable.getPageSize()).offset(pageable.getOffset());
         }
-
         return select.fetch().map(this::mapToOwnerBase);
     }
 
-    private List<SortField<?>> convertToOrders(Sort sort) {
-        return sort.stream()
-                .map(order -> {
-                    TableField<OwnersRecord, ?> tableField = domainToJooqField.get(order.getProperty());
-                    if (tableField == null) {
-                        return null;
-                    }
-                    return order.getDirection() == Sort.Direction.DESC ? tableField.desc() : tableField.asc();
-                })
-                .filter(Objects::nonNull)
-                .toList();
-    }
-
-    private List<Condition> convertToConditions(OwnerFilter filter) {
+    private List<Condition> createConditions(OwnerFilter filter) {
         List<Condition> conditions = new ArrayList<>();
         Owners owners = OWNERS;
         String name = filter.name();
@@ -85,6 +69,18 @@ public class JooqOwnerService implements OwnerService {
         return conditions;
     }
 
+    private List<SortField<?>> createOrders(Sort sort) {
+        return sort.stream()
+                .map(order -> {
+                    TableField<OwnersRecord, ?> tableField = domainToJooqField.get(order.getProperty());
+                    if (tableField == null) {
+                        return null;
+                    }
+                    return order.getDirection() == Sort.Direction.DESC ? tableField.desc() : tableField.asc();
+                })
+                .filter(Objects::nonNull)
+                .toList();
+    }
     private OwnerBase mapToOwnerBase(OwnersRecord record) {
         OwnerBase ownerBase = new OwnerBase();
         ownerBase.setId(record.getId());

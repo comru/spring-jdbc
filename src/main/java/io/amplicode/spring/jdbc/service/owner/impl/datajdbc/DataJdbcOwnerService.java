@@ -1,12 +1,14 @@
 package io.amplicode.spring.jdbc.service.owner.impl.datajdbc;
 
 import io.amplicode.spring.jdbc.model.owner.OwnerBase;
+import io.amplicode.spring.jdbc.model.owner.OwnerBase.Fields;
 import io.amplicode.spring.jdbc.model.owner.OwnerMinimal;
 import io.amplicode.spring.jdbc.model.owner.OwnerWithPets;
 import io.amplicode.spring.jdbc.model.pet.PetBase;
 import io.amplicode.spring.jdbc.service.owner.OwnerFilter;
 import io.amplicode.spring.jdbc.service.owner.OwnerService;
 import io.amplicode.spring.jdbc.service.pet.PetService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jdbc.core.JdbcAggregateOperations;
 import org.springframework.data.relational.core.query.Criteria;
@@ -20,21 +22,12 @@ import java.util.stream.Collectors;
 import static org.springframework.data.relational.core.query.Criteria.where;
 
 @Service
+@RequiredArgsConstructor
 public class DataJdbcOwnerService implements OwnerService {
 
     private final JdbcAggregateOperations entityOperations;
-
     private final PetService petService;
-
     private final JdbcOwnerRepository ownerRepository;
-
-    public DataJdbcOwnerService(JdbcAggregateOperations entityOperations,
-                                PetService petService,
-                                JdbcOwnerRepository ownerRepository) {
-        this.entityOperations = entityOperations;
-        this.petService = petService;
-        this.ownerRepository = ownerRepository;
-    }
 
     @Override
     public List<OwnerBase> findAll(OwnerFilter filter, Pageable pageable) {
@@ -46,20 +39,19 @@ public class DataJdbcOwnerService implements OwnerService {
         Criteria criteria = Criteria.empty();
         String name = filter.name();
         if (StringUtils.hasText(name)) {
-            //TODO property name!!! 4 hours!!!!
             String nameExpr = "%" + name + "%";
             criteria = criteria.and(
-                    where("firstName").like(nameExpr).ignoreCase(true)
-                            .or("lastName").like(nameExpr).ignoreCase(true)
+                    where(Fields.firstName).like(nameExpr).ignoreCase(true)
+                            .or(Fields.lastName).like(nameExpr).ignoreCase(true)
             );
         }
         String city = filter.city();
         if (StringUtils.hasText(city)) {
-            criteria = criteria.and(CITY).like("%" + city + "%").ignoreCase(true);
+            criteria = criteria.and(Fields.city).like("%" + city + "%").ignoreCase(true);
         }
         String telephone = filter.telephone();
         if (StringUtils.hasText(telephone)) {
-            criteria = criteria.and(TELEPHONE).is(telephone);
+            criteria = criteria.and(Fields.telephone).is(telephone);
         }
         return Query.query(criteria);
     }
