@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.relational.core.sql.*;
 import org.springframework.data.relational.core.sql.render.SqlRenderer;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.JdbcUtils;
@@ -50,7 +51,8 @@ public class RelationalCoreOwnerService implements OwnerService {
                 .select(table.column("*"))
                 .from(table);
 
-        List<Condition> conditions = convertToConditions(table, filter);
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+        List<Condition> conditions = convertToConditions(table, filter, parameterSource);
         if (!conditions.isEmpty()) {
             from.where(conditions.stream().reduce(Condition::and).get());
         }
@@ -63,6 +65,7 @@ public class RelationalCoreOwnerService implements OwnerService {
 
         String sql = SqlRenderer.toString(from.build());
         return jdbcClient.sql(sql)
+                .paramSource(parameterSource)
                 .query(OwnerService::mapOwnerBase)
                 .list();
     }
@@ -75,27 +78,30 @@ public class RelationalCoreOwnerService implements OwnerService {
         }).toList();
     }
 
-    private List<Condition> convertToConditions(Table table, OwnerFilter filter) {
+    private List<Condition> convertToConditions(Table table, OwnerFilter filter, MapSqlParameterSource parameterSource) {
         List<Condition> conditions = new ArrayList<>();
         String name = filter.name();
         if (StringUtils.hasText(name)) {
-            conditions.add(nest(ignoreCaseContains(table, FIRST_NAME, name)
-                    .or(ignoreCaseContains(table, LAST_NAME, name))));
+            conditions.add(nest(ignoreCaseContains(table, FIRST_NAME, "name")
+                    .or(ignoreCaseContains(table, LAST_NAME, "name"))));
+            parameterSource.addValue("name", "%" + name + "%");
         }
         String city = filter.city();
         if (StringUtils.hasText(city)) {
-            conditions.add(ignoreCaseContains(table, CITY, city));
+            conditions.add(ignoreCaseContains(table, CITY, "city"));
+            parameterSource.addValue("city", "%" + city + "%");
         }
         String telephone = filter.telephone();
         if (StringUtils.hasText(telephone)) {
-            conditions.add(isEqual(table.column(TELEPHONE), SQL.literalOf(telephone)));
+            conditions.add(isEqual(table.column(TELEPHONE), SQL.bindMarker(":telephone")));
+            parameterSource.addValue("telephone", telephone);
         }
         return conditions;
     }
 
-    private static Like ignoreCaseContains(Table table, String columnName, String literal) {
+    private static Like ignoreCaseContains(Table table, String columnName, String bindPramName) {
         Expression leftExpression = lowerFunction(table.column(columnName));
-        Expression rightExpression = lowerFunction(SQL.literalOf("%" + literal + "%"));
+        Expression rightExpression = lowerFunction(SQL.bindMarker(":" + bindPramName));
         return like(leftExpression, rightExpression);
     }
 
@@ -136,10 +142,11 @@ public class RelationalCoreOwnerService implements OwnerService {
         var select = Select.builder()
                 .select(table.column("*"))
                 .from(table)
-                .where(isEqual(table.column(ID), SQL.literalOf(id)))
+                .where(isEqual(table.column(ID), SQL.bindMarker(":id")))
                 .build();
 
         return jdbcClient.sql(SqlRenderer.toString(select))
+                .param("id", id)
                 .query(OwnerService::mapOwnerBase)
                 .optional();
     }
@@ -149,17 +156,14 @@ public class RelationalCoreOwnerService implements OwnerService {
         var table = ownerTable();
 
         Column idColumn = table.column(ID);
-        List<NumericLiteral> idExpressions = ids.stream()
-                .map(SQL::literalOf)
-                .toList();
-
         var select = Select.builder()
                 .select(idColumn, table.column(FIRST_NAME), table.column(LAST_NAME))
                 .from(table)
-                .where(in(idColumn, idExpressions))
+                .where(in(idColumn, SQL.bindMarker(":ids")))
                 .build();
 
         return jdbcClient.sql(SqlRenderer.toString(select))
+                .param("ids", ids)
                 .query(OwnerService::mapOwnerMinimal)
                 .list();
     }
@@ -182,9 +186,10 @@ public class RelationalCoreOwnerService implements OwnerService {
                     assignment(table.column(ADDRESS), owner.getAddress()),
                     assignment(table.column(CITY), owner.getCity()),
                     assignment(table.column(TELEPHONE), owner.getTelephone())
-            )).where(isEqual(table.column(ID), SQL.literalOf(owner.getId()))).build();
+            )).where(isEqual(table.column(ID), SQL.bindMarker(":id"))).build();
 
             jdbcClient.sql(SqlRenderer.toString(update))
+                    .param("id", owner.getId())
                     .update();
         }
         return owner;
@@ -200,10 +205,11 @@ public class RelationalCoreOwnerService implements OwnerService {
 
         Delete delete = Delete.builder()
                 .from(table)
-                .where(isEqual(table.column(ID), SQL.literalOf(id)))
+                .where(isEqual(table.column(ID), SQL.bindMarker(":id")))
                 .build();
 
         jdbcClient.sql(SqlRenderer.toString(delete))
+                .param("id", id)
                 .update();
     }
 

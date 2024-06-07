@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.JdbcUtils;
@@ -46,7 +47,8 @@ public class JdbcClientOwnerService implements OwnerService {
     public List<OwnerBase> findAll(OwnerFilter filter, Pageable pageable) {
         var sql = "select * from " + TABLE_NAME;
 
-        List<String> filterConditions = convertToConditions(filter);
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+        List<String> filterConditions = convertToConditions(filter, parameterSource);
         if (!filterConditions.isEmpty()) {
             String conditionsExpr = filterConditions.stream()
                     .map(s -> " (" + s + ")")
@@ -65,6 +67,7 @@ public class JdbcClientOwnerService implements OwnerService {
         }
 
         return jdbcClient.sql(sql)
+                .paramSource(parameterSource)
                 .query(BeanPropertyRowMapper.newInstance(OwnerBase.class))
                 .list();
     }
@@ -102,19 +105,23 @@ public class JdbcClientOwnerService implements OwnerService {
         }).toList();
     }
 
-    private List<String> convertToConditions(OwnerFilter filter) {
+    private List<String> convertToConditions(OwnerFilter filter, MapSqlParameterSource parameterSource) {
         List<String> result = new ArrayList<>();
         String name = filter.name();
         if (StringUtils.hasText(name)) {
-            result.add("(" + FIRST_NAME + " ilike '%" + name + "%') or (" + LAST_NAME + " ilike '%" + name + "%')");
+
+            result.add("(" + FIRST_NAME + " ilike :name) or (" + LAST_NAME + " ilike :name)");
+            parameterSource.addValue("name", "%" + name + "%");
         }
         String city = filter.city();
         if (StringUtils.hasText(city)) {
-            result.add(CITY + " ilike '%" + city + "%'");
+            result.add(CITY + " ilike :city");
+            parameterSource.addValue("city", "%" + city + "%");
         }
         String telephone = filter.telephone();
         if (StringUtils.hasText(telephone)) {
-            result.add(TELEPHONE + " = '" + telephone + "'");
+            result.add(TELEPHONE + " = :telephone");
+            parameterSource.addValue("telephone", telephone);
         }
         return result;
     }
